@@ -32,8 +32,8 @@ def rawData():
         eventCode = eventCode.strip()
         eventCode = eventCode.lower()
         # concatenates the web scraping URL out of the event code
-        URL = "https://www.thebluealliance.com/event/2024" + eventCode + "#rankings"
-        page = requests.get(URL)
+        rankingsURL = "https://www.thebluealliance.com/event/2024" + eventCode + "#rankings"
+        page = requests.get(rankingsURL)
         # creates a string that contains the page html
         # if the page html returns a 404 error, the event code was invalid
         # the user is routed to the invalid event code page
@@ -51,41 +51,41 @@ def rawData():
             rankings = rankings.split("\n")
             # appends all non-empty strings from the data to the data list with excess whitespace removed
             # This allows the data to be formatted as a table
-            dataList = []
+            rawDataList = []
             for value in rankings:
                 value = value.strip()
                 if len(value) != 0:
-                    dataList.append(value)
+                    rawDataList.append(value)
             # raw data table creation
-            newList = np.array(dataList).reshape(-1, 11).tolist()
+            rawDataList = np.array(rawDataList).reshape(-1, 11).tolist()
             # the first element of the list is stored as headings for the data frame
-            headings = newList[0]
+            rawDataHeadings = rawDataList[0]
             # the rest of the list is the actual raw data
-            data = newList[1:]
-            rawData = pd.DataFrame(data, columns=headings)
+            rawData = rawDataList[1:]
+            rawDf = pd.DataFrame(rawData, columns=rawDataHeadings)
             # analyzed data table creation
             # the unnecessary data columns from the raw data table are dropped
-            analyzedData = rawData.drop(
+            analyzedDf = rawDf.drop(
                 ['Ranking Score', 'Avg Coop', 'Avg Match', 'Record (W-L-T)', 'DQ', 'Played', 'Total Ranking Points*'],
                 axis=1, inplace=False)
             # To add a win percentage to the analyzed data, I convert the win record from the raw data into a list
             # so each string can be converted into a win percentage and then add that column to the analyzed data frame
-            record = rawData['Record (W-L-T)'].tolist()
+            recordList = rawDf['Record (W-L-T)'].tolist()
             i = 0
-            while i < len(record):
+            while i < len(recordList):
                 # breaks each win record into a list containing win, loss, and tie values
-                record[i] = record[i].split("-")
+                recordList[i] = recordList[i].split("-")
                 # computes and rounds the win percentage
-                record[i] = (int(record[i][0]) / (int(record[i][0]) + int(record[i][1]) + int(record[i][2]))) * 100
-                record[i] = round(record[i], 2)
+                recordList[i] = (int(recordList[i][0]) / (int(recordList[i][0]) + int(recordList[i][1]) + int(recordList[i][2]))) * 100
+                recordList[i] = round(recordList[i], 2)
                 i = i + 1
 
             # adds the win percentage to the analyzed data table
-            analyzedData['Win %'] = record
+            analyzedDf['Win %'] = recordList
 
             # concactenates the URL to use for webscraping OPR
-            URL2 = "https://www.thebluealliance.com/event/2024" + eventCode + "#event-insights"
-            data = requests.get(URL2).text
+            insightsURL = "https://www.thebluealliance.com/event/2024" + eventCode + "#event-insights"
+            data = requests.get(insightsURL).text
             soup = BeautifulSoup(data, 'html.parser')
             soup = soup.prettify()
 
@@ -104,64 +104,73 @@ def rawData():
                 x = x.replace("\'", " ")
                 x = x.replace(":", " ")
                 OPRlist.append(x.strip())
-
-            a = 1
-            while a < len(OPRlist):
-                if a % 2 != 0:
-                    OPRlist[a] = round(float(OPRlist[a]), 2)
-                a = a + 1
-
+            # Creates a dictionary with the team number as keys and OPRs as values
             OPRdict = {}
             for i in range(0, len(OPRlist), 2):
                 OPRdict[OPRlist[i]] = OPRlist[i + 1]
-
+            # Rounds the OPR values in the dictionary
+            for team, OPR in OPRdict.items():
+                OPRdict[team] = round(float(OPR), 2)
+            # Converts the OPR dictionary to a dataframe and adds that dataframe to the analyzed dataframe
             OPRdf = pd.DataFrame(list(OPRdict.items()), columns=['Team', 'OPR'])
-            analyzedData = pd.merge(analyzedData, OPRdf, how="left")
+            analyzedDf = pd.merge(analyzedDf, OPRdf, how="left")
+            # URL for webscraping qualitative data
+            qualURL = "https://docs.google.com/spreadsheets/u/1/d/e/2PACX-1vQdEySR4HFSmPRIkghkzGFKMjrSRVu-K0P9uFterllQZFikHt1bnO-m7h-mV3B2pwamRy9jIIu5-fOa/pubhtml"
+            qualDf = pd.read_html(qualURL)
+            qualDf = qualDf[0]
+            qualDf.columns = qualDf.iloc[0]
+            # removes unnecessary qualitative data columns and headings
+            qualDf = qualDf.drop(["Timestamp", 1.0], axis=1)
+            qualDf = qualDf.drop(labels=[0, 1])
 
-            URL = "https://docs.google.com/spreadsheets/u/1/d/e/2PACX-1vQdEySR4HFSmPRIkghkzGFKMjrSRVu-K0P9uFterllQZFikHt1bnO-m7h-mV3B2pwamRy9jIIu5-fOa/pubhtml"
-            # concoctanates the URL to use for webscraping
-            qualData = pd.read_html(URL)
-            qualData = qualData[0]
-            qualData.columns = qualData.iloc[0]
-            qualData = qualData.drop(["Timestamp", 1.0], axis=1)
-            qualData = qualData.drop(labels=[0, 1])
+            # modify dataframe by combining rows with same id values so the dataframe has only one row per team
+            qualDf = qualDf.groupby(['Team']).agg({'Notes': ', '.join}).reset_index()
 
-            # create new DataFrame by combining rows with same id values
-            qualData = qualData.groupby(['Team']).agg({'Notes': ', '.join}).reset_index()
-
-            analyzedData = pd.merge(analyzedData, qualData, how="left")
-            analyzedData['Avg Auto'] = analyzedData['Avg Auto'].astype(float)
-            analyzedData['Avg Stage'] = analyzedData['Avg Stage'].astype(float)
-            analyzedData['Rank'] = analyzedData['Rank'].astype(float)
-
-            analyzedData = analyzedData.sort_values(by=['OPR'], ascending=False).reset_index(drop=True)
-            analyzedData['Prediction'] = round((((analyzedData['OPR']) * 0.35) + ((analyzedData['Avg Auto']) * 0.3) + (
-                    (analyzedData['Avg Stage']) * 0.1) + (abs(analyzedData.index - analyzedData['Rank'])) * 0.25) / 4,
+            # converts the auto, stage and rank columns in the analyzed data to floats. This allows the predicted rank
+            # to be calculated using these values
+            analyzedDf = pd.merge(analyzedDf, qualDf, how="left")
+            analyzedDf['Avg Auto'] = analyzedDf['Avg Auto'].astype(float)
+            analyzedDf['Avg Stage'] = analyzedDf['Avg Stage'].astype(float)
+            analyzedDf['Rank'] = analyzedDf['Rank'].astype(float)
+            # a weighted average is calculated to rank the teams by a predicted column
+            analyzedDf = analyzedDf.sort_values(by=['OPR'], ascending=False).reset_index(drop=True)
+            analyzedDf['Prediction'] = round((((analyzedDf['OPR']) * 0.35) + ((analyzedDf['Avg Auto']) * 0.3) + (
+                    (analyzedDf['Avg Stage']) * 0.1) + (abs(analyzedDf.index - analyzedDf['Rank'])) * 0.25) / 4,
                                                2)
-            analyzedData = analyzedData.drop(['Rank'], axis=1)
-            analyzedData = analyzedData.sort_values(by=['Prediction'], ascending=False)
-            analyzedData = analyzedData.reset_index(drop=True)
+            # the rank column is replaced with the prediction column and the data is sorted by their prediction
+            analyzedDf = analyzedDf.drop(['Rank'], axis=1)
+            analyzedDf = analyzedDf.sort_values(by=['Prediction'], ascending=False)
+            analyzedDf = analyzedDf.reset_index(drop=True)
+
+            # the analyzed dataframe html is created and its rows are centered
             global analyzed
-            analyzed = analyzedData.to_html(classes=["table-bordered", "table-striped", "table-hover"])
+            analyzed = analyzedDf.to_html(classes=["table-bordered", "table-striped", "table-hover"])
             analyzed = analyzed.replace('<tr>', '<tr align="center">')
+
+            # the raw dataframe html is created and its rows are centered
             global html
-            html = rawData.to_html(classes=["table-bordered", "table-striped", "table-hover"])
+            html = rawDf.to_html(classes=["table-bordered", "table-striped", "table-hover"])
             html = html.replace('<tr>', '<tr align="center">')
 
+            # returns the raw data html template with the event name and data table for display
             return render_template('rawData.html', eventName=eventName, rawDataTable=html)
 
-            #return flask.send_from_directory(".", path="templates/rawData.html")
-
-
+# app analyzed data page
+# method returns the html file analyzedData.html
+# this method runs when the user clicks on the analyzed data button from the raw data page
 @app.route('/analyzedData.html', methods=['GET', 'POST'])
 def analyzedData():
     return render_template('analyzedData.html', analyzedDataTable=analyzed, eventName=eventName)
 
+# app raw data page route and method if accessed from the analyzed data page
+# method returns the html file rawData.html
+# this method runs when returning to the raw data page after visiting the analyzed data page
+# so the raw data table isn't recreated
 @app.route('/rawDataDisplay.html', methods=['GET', 'POST'])
 def rawDataDisplay():
     return render_template('rawData.html', rawDataTable=html, eventName=eventName)
 
-
+# runs the flask app
 if __name__ == '__main__':
    app.run()
 
