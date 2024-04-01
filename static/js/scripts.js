@@ -4,7 +4,7 @@
 * Licensed under MIT (https://github.com/StartBootstrap/startbootstrap-simple-sidebar/blob/master/LICENSE)
 */
 //
-// Scripts
+// Scripts for the sidebar toggle button/sidebar menu.
 //
 
 window.addEventListener('DOMContentLoaded', event => {

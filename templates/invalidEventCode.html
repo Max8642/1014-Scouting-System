@@ -1,0 +1,32 @@
+<!--
+This is the html file returned if the user inputs an event code not recognized online and allows them to return home
+-->
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <meta name="description" content="" />
+        <meta name="author" content="" />
+        <!-- Page hover/Page Tab description -->
+        <title>Team 1014 Scouting System</title>
+        <!-- Page icon -->
+        <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/favicon.ico') }}" />
+        <!-- Links to page CSS styling (includes Bootstrap)-->
+        <link type="text/css" rel="stylesheet" href="{{ url_for('static', filename='css/homeStyle.css') }}" />
+    </head>
+    <body>
+        <div class="container-fluid">
+            <!-- Page Heading -->
+            <h1 class="mt-5"> <strong> Invalid Event Code </h1>
+            <!-- Button to Return to Home Page -->
+            <form action="/" method="POST">
+                <input type="submit" name= "form" value="Go Home" />
+            </form>
+        </div>
+        <!-- Bootstrap core JS-->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+        <!-- Core theme JS-->
+        <script src="{{url_for('static', filename='js/scripts.js')}}"></script>
+    </body>
+</html>

@@ -1,0 +1,44 @@
+<!--
+This is the html file for the home page of the scouting system
+-->
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <meta name="description" content="" />
+        <meta name="author" content="" />
+        <!-- Page hover/Page Tab description -->
+        <title>Team 1014 Scouting System</title>
+        <!-- Page icon -->
+        <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/favicon.ico') }}" />
+        <!-- Links to page CSS styling (includes Bootstrap)-->
+        <link type="text/css" rel="stylesheet" href="{{ url_for('static', filename='css/homeStyle.css') }}" />
+    </head>
+    <body>
+        <div class="container-fluid">
+            <!-- Page Image (Team Logo) and Heading -->
+            <img style="float: left; margin: 0px 15px 15px 0px;"src="/static/images/teamLogo.png" alt="team logo" width="275" style="width:200px;height:200px;">
+            <h1 class="mt-5"> <strong> Welcome to the Team 1014 Scouting System! </h1>
+                <!-- Page Content Text-->
+                <p>
+                    First, input a valid event code. Then view raw team data on the raw data page or analyzed data
+                    with alliance selection recommendations under the analyzed data page. Rank your picks for alliance
+                    selection in the team list tab.
+                </p>
+                <!-- Link to scouting Form, opens in a new tab, styled yellow -->
+                <p>
+                    <a href="https://forms.gle/8rguBXk9Ueyhm3PT7" target="_blank" style="color:#e9d66b;font-weight:bold"> Team 1014 Scouting Form</a>
+                </p>
+                <!-- Form to submit the event code. The submitted code can be retrieved using request.form('eventCode') -->
+                <form action="/rawData.html" method="POST">
+                    <p> <strong> Input Event Code: </strong> </p> <input type="text" name="eventCode" value={{request.form.eventCode}}>
+                    <input type="submit" name= "form" value="Submit" />
+                </form>
+        </div>
+        <!-- Bootstrap core JS-->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+        <!-- Core theme JS-->
+        <script src="{{url_for('static', filename='js/scripts.js')}}"></script>
+    </body>
+</html>
